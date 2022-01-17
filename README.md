@@ -6,7 +6,9 @@ Changed some of the simpler process injection methods in Ne0nD0g's go-shellcode 
 # Resources 
 
 Bananaphone - https://github.com/C-Sto/BananaPhone/
+
 go-shellcode - https://github.com/Ne0nd0g/go-shellcode
+
 Doge-Process-Injection - https://github.com/timwhitez/Doge-Process-Injection - A few syscalls needed an extra arg in the CreateRemoteThread code. Not sure if it's some sort of stack alignment issue. Found out about the added arg from this repo.
 
 ## Issues
