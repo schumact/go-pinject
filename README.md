@@ -1,7 +1,7 @@
 # go-pinject
 Process injection a few different ways using direct syscalls with Bananaphone. 
 
-Changed some of the simpler Process injection methods in Ne0nD0g's go-shellcode repo to using direct syscalls.
+Changed some of the simpler process injection methods in Ne0nD0g's go-shellcode repo to using direct syscalls.
 
 # Resources 
 
