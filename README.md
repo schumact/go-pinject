@@ -16,5 +16,6 @@ Doge-Process-Injection - https://github.com/timwhitez/Doge-Process-Injection - A
 I'm happy to fix issues and implement any changes that people submit. Known issues/improvments are listed below. Not sure if the fault lies with Bananaphone or my code. Probably the latter.
 
 CreateRemoteThread - NtClose syscall panics (currently using CloseHandle instead)
+
 EarlyBirdAPC - NtClose syscall panics (currently using CloseHandle instead), NtResumeThread panics more often than not but shellcode runs, NtCreateUserProcess not implemented (using CreateProcess instead)
 
